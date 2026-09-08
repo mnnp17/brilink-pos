@@ -1,15 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getDashboardPathForRole, resolveUserRole } from '@/lib/utils/auth-routing'
 import { toast } from 'sonner'
 
 export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,17 +37,10 @@ export function ChangePasswordForm() {
           .eq('id', user.id)
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user!.id)
-        .single()
+      const role = await resolveUserRole(supabase, user!.id)
 
       toast.success('Password berhasil diubah!')
-
-      if (profile?.role === 'developer') router.push('/admin')
-      else if (profile?.role === 'owner') router.push('/dashboard')
-      else router.push('/pos')
+      window.location.href = getDashboardPathForRole(role)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Gagal mengubah password'
       toast.error(message)

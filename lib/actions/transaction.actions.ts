@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseClient, getCurrentUserContext } from '@/lib/supabase/action-auth'
 import { createTransactionSchema, type CreateTransactionInput } from '@/lib/validations/transaction.schema'
 
 export interface ActionResult<T = unknown> {
@@ -10,18 +10,16 @@ export interface ActionResult<T = unknown> {
 }
 
 export async function createTransaction(input: CreateTransactionInput): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  // Get current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return { success: false, error: 'Tidak terautentikasi' }
+  const supabase = await getSupabaseClient()
+  const { userId, error: ctxError } = await getCurrentUserContext()
+  if (!userId) {
+    return { success: false, error: ctxError }
   }
 
   // Validate input
   const validation = createTransactionSchema.safeParse(input)
   if (!validation.success) {
-    return { success: false, error: validation.error.errors[0]?.message ?? 'Input tidak valid' }
+    return { success: false, error: validation.error.issues[0]?.message ?? 'Input tidak valid' }
   }
 
   const data = validation.data
@@ -39,7 +37,7 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     p_customer_phone: data.customer_phone ?? null,
     p_destination_account: data.destination_account ?? null,
     p_notes: data.notes ?? null,
-    p_created_by: user.id,
+    p_created_by: userId,
   })
 
   if (error) {
@@ -59,21 +57,50 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
 }
 
 export async function voidTransaction(transactionId: string, reason: string): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { success: false, error: 'Tidak terautentikasi' }
+  const supabase = await getSupabaseClient()
+  const { userId, error: ctxError } = await getCurrentUserContext()
+  if (!userId) return { success: false, error: ctxError }
 
   const { error } = await supabase
     .from('transactions')
     .update({
       status: 'void',
       void_reason: reason,
-      voided_by: user.id,
+      voided_by: userId,
       voided_at: new Date().toISOString(),
     })
     .eq('id', transactionId)
 
   if (error) return { success: false, error: error.message }
   return { success: true }
+}
+
+import fs from 'fs'
+
+function logDebug(message: string) {
+  const logFile = 'C:\\Users\\LENOVO\\.gemini\\antigravity\\brain\\e47a547a-5006-406c-9b8b-c8c07f796bf2/scratch/debug.log';
+  try {
+    fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`);
+  } catch (e) {}
+}
+
+export async function getTransactionHistory(): Promise<ActionResult<any[]>> {
+  logDebug('getTransactionHistory: called');
+  const supabase = await getSupabaseClient()
+  const { userId, error: ctxError } = await getCurrentUserContext()
+  logDebug(`getTransactionHistory context: userId=${userId}, ctxError=${ctxError}`);
+  if (!userId) return { success: false, error: ctxError }
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*, accounts(id, name, account_number, type)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    logDebug(`getTransactionHistory DB error: ${error.message}`);
+    return { success: false, error: error.message }
+  }
+  logDebug(`getTransactionHistory DB success: count=${data?.length ?? 0}`);
+  return { success: true, data: data ?? [] }
 }

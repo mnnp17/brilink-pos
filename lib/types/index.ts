@@ -1,3 +1,5 @@
+import type { StaffPermissions } from '@/app/(dashboard)/staff/types/staff-master';
+
 export type UserRole = 'developer' | 'owner' | 'kasir'
 export type AccountType = 'bank_bri' | 'edc_mobile' | 'bank_lain' | 'kas_laci'
 export type TransactionType = 'setor_tunai' | 'tarik_tunai' | 'ppob' | 'pulsa' | 'transfer_internal' | 'cash_drop'
@@ -11,6 +13,8 @@ export interface Profile {
   must_change_password: boolean
   is_active: boolean
   phone?: string
+  outlet_id?: string
+  permissions?: StaffPermissions
   created_at: string
   updated_at: string
 }

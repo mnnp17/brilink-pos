@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseClient, getCurrentUserContext } from '@/lib/supabase/action-auth'
 import { createAccountSchema, type CreateAccountInput } from '@/lib/validations/transaction.schema'
 
 export interface ActionResult<T = unknown> {
@@ -10,13 +10,12 @@ export interface ActionResult<T = unknown> {
 }
 
 export async function createAccount(input: CreateAccountInput): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { success: false, error: 'Tidak terautentikasi' }
+  const supabase = await getSupabaseClient()
+  const { userId, error: ctxError } = await getCurrentUserContext()
+  if (!userId) return { success: false, error: ctxError }
 
   const validation = createAccountSchema.safeParse(input)
-  if (!validation.success) return { success: false, error: validation.error.errors[0]?.message }
+  if (!validation.success) return { success: false, error: validation.error.issues[0]?.message }
 
   const data = validation.data
   const { data: account, error } = await supabase
@@ -24,7 +23,7 @@ export async function createAccount(input: CreateAccountInput): Promise<ActionRe
     .insert({
       ...data,
       current_balance: data.initial_balance,
-      created_by: user.id,
+      created_by: userId,
     })
     .select()
     .single()
@@ -34,7 +33,7 @@ export async function createAccount(input: CreateAccountInput): Promise<ActionRe
 }
 
 export async function updateAccount(id: string, input: Partial<CreateAccountInput>): Promise<ActionResult> {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
 
   const { error } = await supabase
     .from('store_accounts')
@@ -46,7 +45,7 @@ export async function updateAccount(id: string, input: Partial<CreateAccountInpu
 }
 
 export async function deleteAccount(id: string): Promise<ActionResult> {
-  const supabase = await createClient()
+  const supabase = await getSupabaseClient()
 
   const { error } = await supabase
     .from('store_accounts')

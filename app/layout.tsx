@@ -1,50 +1,27 @@
-import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import './globals.css'
-import { Providers } from '@/components/providers'
+import React from 'react';
+import './globals.css';
+import { Providers } from '@/components/providers';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
-
-export const metadata: Metadata = {
-  title: {
-    default: 'BRILink POS',
-    template: '%s | BRILink POS',
-  },
-  description: 'Sistem Point of Sale Digital untuk Agen BRILink — kelola transaksi, saldo rekening, dan laporan keuangan secara real-time.',
-  keywords: ['BRILink', 'POS', 'agen', 'transaksi', 'kasir'],
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'BRILink POS',
-  },
-}
-
-export const viewport: Viewport = {
-  themeColor: '#0F172A',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-}
+export const metadata = {
+  title: 'POS Agen BRILink Digital System',
+  description: 'Aplikasi Kasir POS Digital Dual-Balance & Multi-Outlet Agen BRILink',
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-100`}>
+    <html lang="id">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body className="bg-[#F8FAFC] min-h-screen text-gray-900 font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }
