@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -18,7 +18,7 @@ serve(async (req) => {
     const db = createClient(supabaseUrl, supabaseKey)
 
     // Execute each SQL statement
-    const results = []
+    const results: Array<{ sql: string; success: boolean; error?: string }> = []
     const statements = [
       "CREATE ROLE kasir LOGIN PASSWORD 'kasir123' INHERIT;",
       "CREATE ROLE owner LOGIN PASSWORD 'owner123' INHERIT;",
@@ -34,8 +34,9 @@ serve(async (req) => {
       try {
         const { error } = await db.rpc('exec_ddl', { statement: stmt })
         results.push({ sql: stmt, success: !error, error: error?.message })
-      } catch (e) {
-        results.push({ sql: stmt, success: false, error: e.message })
+      } catch (e: unknown) {
+        const errorMsg = e instanceof Error ? e.message : String(e)
+        results.push({ sql: stmt, success: false, error: errorMsg })
       }
     }
 
@@ -43,9 +44,10 @@ serve(async (req) => {
       JSON.stringify({ results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
-  } catch (err) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
